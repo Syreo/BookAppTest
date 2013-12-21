@@ -3,6 +3,7 @@ package com.example.bookapptest;
 import android.test.ActivityInstrumentationTestCase2;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.cycle7.bookapp.HomeScreenActivity;
 import com.cycle7.bookapp.R;
@@ -13,7 +14,9 @@ public class ListTest extends ActivityInstrumentationTestCase2<HomeScreenActivit
 		private Solo solo;
 		public static final String CANCEL_BUTTON = "Cancel";
 		public static final String SAVE_BUTTON = "Save";
-		
+		public static final String EMPTY_STRING_TOAST = "Blank or non-unique list names are not allowed";
+		public static final String DIALOG_TEXT_LABEL = "List Name:";
+		public static final int CREAT_LIST_BUTTON_INDEX = 3;
 		
 	public ListTest() {
 		super(HomeScreenActivity.class);
@@ -22,6 +25,7 @@ public class ListTest extends ActivityInstrumentationTestCase2<HomeScreenActivit
 	protected void setUp() throws Exception {
 		super.setUp();
 		solo = new Solo(getInstrumentation(), getActivity());
+		
 	}
 
 	protected void tearDown() throws Exception {
@@ -34,85 +38,108 @@ public class ListTest extends ActivityInstrumentationTestCase2<HomeScreenActivit
 			super.tearDown();
 	}
 	
-
+	/*
+	 * Tests that the dialog fragment for creating a list appears on click and that the text label is correct
+	 */
+	
 	public void testDialogText(){
 		 solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		 solo.clickOnImageButton(3);
-		 String listNameText = "List Name:";
+		 solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
 		 solo.waitForDialogToOpen();
 		 String getDialogText = solo.getText(0).getText().toString();
-		 assertEquals(listNameText, getDialogText);
+		 assertEquals(DIALOG_TEXT_LABEL, getDialogText);
 		 solo.clickOnButton(CANCEL_BUTTON);
 	}
-	
+	/*
+	 * Tests that the buttons are correctly labeled "Cancel" and "Save"
+	 */
 	public void testButtonText(){
-		String expectedButtonText = SAVE_BUTTON;
-		String expectedButtonText2 = CANCEL_BUTTON;
 		 solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		 solo.clickOnImageButton(3);
+		 solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
 		 solo.waitForDialogToOpen();
 		 String firstButtonText = solo.getButton(0).getText().toString();
 		 String secondButtonText = solo.getButton(1).getText().toString();
-		 assertEquals(expectedButtonText, firstButtonText);
-		 assertEquals(expectedButtonText2, secondButtonText);  
+		 assertEquals(SAVE_BUTTON, firstButtonText);
+		 assertEquals(CANCEL_BUTTON, secondButtonText);  
 		 solo.clickOnButton(CANCEL_BUTTON);
 	}
-	
+	/*
+	 * Tests that the empty string toast appears when you try to submit an empty string for a list name
+	 */
 	public void testEmptyStringToast(){
 		 solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		 solo.clickOnImageButton(3);
+		 solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
 		 solo.waitForDialogToOpen();
 		 solo.clickOnButton(SAVE_BUTTON);
-		 boolean didToastAppear = solo.searchText("Blank or non-unique list names are not allowed");
+		 boolean didToastAppear = solo.searchText(EMPTY_STRING_TOAST);
 		 assertTrue(didToastAppear);
 	}
+	/*
+	 * Tests that a list is successfully created when inputting a unique string for a list name.
+	 */
 	
 	public void test1CreateList(){
 		 solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		 solo.clickOnImageButton(3);
+		 solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
+		 String randomListName = randomListName();
 		 solo.waitForDialogToOpen();
-		 String textToInput = randomListName();
 		 EditText listInput = (EditText) solo.getView(R.id.listNameInput);
-		 solo.enterText(listInput, textToInput);
+		 solo.enterText(listInput, randomListName);
 		 solo.clickOnButton(SAVE_BUTTON);
 		 solo.clickOnImageButton(4);
-		 boolean isListVisible = solo.searchText(textToInput);
+		 boolean isListVisible = solo.searchText(randomListName);
 		 assertTrue(isListVisible);
 		 solo.goBack();
 		 
 	}
-	
-	public void test2AddBookToList(){
+	/*
+	 * Tests that a toast is displayed when a non-unique name is entered
+	 */
+	public void testCreateListWithNonUniqueName(){
+		 String listName = randomListName();
+		 solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
+		 solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
+		 solo.waitForDialogToOpen();
+		 EditText listInput = (EditText) solo.getView(R.id.listNameInput);
+		 solo.enterText(listInput, listName);
+		 solo.clickOnButton(SAVE_BUTTON);
+		 solo.clickOnImageButton(3);
+		 EditText listInputCopy = (EditText) solo.getView(R.id.listNameInput);
+		 solo.waitForDialogToOpen();
+		 solo.enterText(listInputCopy, listName);
+		 solo.clickOnButton(SAVE_BUTTON);
+		 boolean isToastThere = solo.searchText(EMPTY_STRING_TOAST);
+		 assertTrue(isToastThere);
+		 solo.clickOnButton(CANCEL_BUTTON);
+	}
+	/*
+	 * Test deleting book lists.
+	 */
+	public void testDeleteList(){
 		solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		solo.clickOnImageButton(1);
-		solo.clickOnCheckBox(0);
-		String clickedBook = solo.getText(3).getText().toString();
-		solo.clickOnButton("Add");
-		solo.goBack();
+		solo.clickOnImageButton(CREAT_LIST_BUTTON_INDEX);
+		String randomListName = randomListName();
+		solo.waitForDialogToOpen();
+		EditText listInput = (EditText) solo.getView(R.id.listNameInput);
+		solo.enterText(listInput, randomListName);
+		solo.clickOnButton(SAVE_BUTTON);
 		solo.clickOnImageButton(4);
-		solo.clickInList(0).get(0);
-		boolean isBookThere = solo.searchText(clickedBook);
-		assertTrue(isBookThere);
-		solo.goBackToActivity("HomeScreenActivity");
+		TextView listName2 = (TextView)solo.getText(randomListName);
+		int id = listName2.getId();
+		CheckBox checkBox = (CheckBox)solo.getView(id + 1);
+		solo.clickOnView(checkBox);
+		solo.clickOnButton("Delete Selected");
+		solo.waitForDialogToOpen();
+		solo.clickOnButton("Yes");
+		boolean isListThere = solo.searchText(randomListName);
+		assertFalse(isListThere);
 	}
 	
-	public void test3RemoveBookFromList(){
-		solo.assertCurrentActivity(HomeScreenTest.BOOK_APP, HomeScreenActivity.class);
-		solo.clickOnImageButton(1);
-		solo.clickOnText("Remove Books");
-		solo.clickOnView((CheckBox)solo.getView(0));
-		String clickedBook = solo.getText(3).getText().toString();
-		solo.clickOnButton("Remove Selected");
-		solo.goBack();
-		solo.clickOnImageButton(4);
-		solo.clickInList(0).get(0);
-		boolean isBookThere = solo.searchText(clickedBook);
-		assertFalse(isBookThere);
-		solo.goBackToActivity("HomeScreenActivity");
-	}
-
+	/*
+	 * generates a random list name because list names must be unique
+	 */
 	private String randomListName() {
-		String name = "LIST NAME " + Math.random() * (10000 - 1);
+		String name = "LIST NAME " + Math.random() * (1000 - 1);
 		return name;
 	}
 
